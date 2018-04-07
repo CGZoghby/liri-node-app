@@ -39,7 +39,7 @@ function movieSearch(params) {
         }
         return args;
     };
-
+    //build the movie title based on user input
     var movieName = buildMovieTitle(process.argv);
     // Then run a request to the OMDB API with the movie specified
     var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=14a66ffa";
@@ -51,11 +51,11 @@ function movieSearch(params) {
             console.log("Title: " + JSON.parse(body).Title + "\n" +
                 "Year release: " + JSON.parse(body).Year + "\n" +
                 "IMDB Rating: " + JSON.parse(body).Ratings[0].Value + "\n" +
-                "Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value + "\n");
-            //also need country where movie was produced
-            //language of the movie
-            //plot of the movie
-            //actors in the movie
+                "Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value + "\n" + 
+                "Country(ies) of Production: " + JSON.parse(body).Country + "\n" +
+                "Languages: " + JSON.parse(body).Language + "\n" +
+                "Plot: " + JSON.parse(body).Plot + "\n" +
+                "Actors: " + JSON.parse(body).Actors + "\n");
         };
     })
 }
@@ -109,6 +109,8 @@ function songSearch(params) {
 
 //-----------------run the random.txt file-------------------------
 //ok, so the problem is that I need the functions to works without calling on process.argv directly
+//it calls my-tweets a-ok, which is awesome, because that means my only issue is multi-string callbacks for movie or song
+//titles.
 function wildCard(params) {
     fs.readFile("random.txt", "utf8", function (error, data) {
         // If the code experiences any errors it will log the error to the console.
