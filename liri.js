@@ -33,18 +33,18 @@ function movieSearch(params) {
     // Function which assembles the movie name and returns it
     function buildMovieTitle(input) {
         var args = ""; //initialize an arguments string that will become the fully assembled movieName passed into queryURL
-        for (i = 0; process.argv.length - 3 > i; i++) {
+        for (i = 3; i < input.length; i++) {
             if (args === "") { //if the moviename is just starting assembly, don't need to concatenate a plus sign
-                args += input[i + 3];
+                args += input[i];
             } else {
-                args += "+" + input[i + 3];
+                args += "+" + input[i];
             };
         }
         return args;
     };
 
     //build the movie title based on user input, if none provided, default to Mr. Nobody
-    var movieName = buildMovieTitle(process.argv);
+    var movieName = buildMovieTitle(params);
     if (movieName === "") {
         movieName = "Mr.+Nobody";
         console.log("No movie title was provided, so a default was used.")
@@ -66,6 +66,12 @@ function movieSearch(params) {
                 "Plot: " + JSON.parse(body).Plot + "\n" +
                 "Actors: " + JSON.parse(body).Actors);
         };
+        fs.appendFile("log.txt", "\n" + "movie-this " + JSON.parse(body).Title, function (err) {
+            // If the code experiences any errors it will log the error to the console.
+            if (err) {
+                return console.log(err);
+            }
+        });
     })
 }
 //-------------------------------END MOVIE API CALL-------------------------------------
@@ -77,6 +83,12 @@ function twitSearch(params) {
         for (var i = 0; i < tweets.length; i++) {
             console.log(tweets[i].text, tweets[i]["created_at"])
         }
+        fs.appendFile("log.txt", "\n" + "my-tweets", function (err) {
+            // If the code experiences any errors it will log the error to the console.
+            if (err) {
+                return console.log(err);
+            }
+        });
     });
 };
 //-----------------------------------END TWITTER API CALL-----------------------------------
@@ -87,18 +99,18 @@ function songSearch(params) {
     //function which assemble the song title and returns it
     function buildSongTitle(input) {
         var args = ""; //initialize an arguments string that will become the fully assembled songName passed into queryURL
-        for (i = 0; process.argv.length - 3 > i; i++) {
-            if (args === "") { //if the song is just starting assembly, don't need to concatenate a blank space space
-                args += input[i + 3];
+        for (i = 3; i < input.length; i++) {
+            if (args === "") { //if the song is just starting assembly, don't need to concatenate a blank space
+                args += input[i];
             } else {
-                args += " " + input[i + 3];
+                args += " " + input[i];
             };
         }
         return args;
     };
 
     //Build the song title, if no song is given, search using a default songName
-    var songName = buildSongTitle(process.argv);
+    var songName = buildSongTitle(params);
     if (songName === "") {
         songName = "The Sign";
         console.log("No song input provided, so a default was used.")
@@ -113,20 +125,23 @@ function songSearch(params) {
         console.log("Song title: " + data["tracks"]["items"][0].name)
         console.log("Preview link: " + data["tracks"]["items"][0].preview_url)
         console.log("Album the song is on: " + data["tracks"]["items"][0]["album"].name)
-        //for (var i = 0; i < data["tracks"]["items"].length; i++) {
-        //    console.log(data["tracks"]["items"][i].artists[0].name)
-        //    console.log(data["tracks"]["items"][i].name)
-        //    console.log(data["tracks"]["items"][i].preview_url)
-        //    console.log(data["tracks"]["items"][i]["album"].name)
-        //}
+        fs.appendFile("log.txt", "\n" + "spotify-this-song " + data["tracks"]["items"][0].name, function (err) {
+            // If the code experiences any errors it will log the error to the console.
+            if (err) {
+                return console.log(err);
+            }
+        });
     });
 };
 //-----------------------------------END SPOTIFY API CALL----------------------------------------
 
 //-----------------run the random.txt file-------------------------
-//ok, so the problem is that I need the functions to works without calling on process.argv directly
-//it calls my-tweets a-ok, which is awesome, because that means my only issue is multi-string callbacks for movie or song
-//titles.
+//K, so this *functionally* works. But the methods of concatenating process.argv inputs does not work for space
+//separated words on a text file. So I'm still hard coding this and I'm sad. 
+//Additionally, a pile of rules have to be followed for anything to work from the text file:
+//1.) Two inputs separated by commas.
+//2.) By default, I assume whitespace in between multi-word movie or song titles. That way spotify search works fine.
+//    And all I have to do is replace whitespace with plus signs for the movie api call.
 function wildCard(params) {
     fs.readFile("random.txt", "utf8", function (error, data) {
         // If the code experiences any errors it will log the error to the console.
@@ -135,18 +150,11 @@ function wildCard(params) {
         }
         // Then split it by commas (to make it more readable)
         var dataArr = data.split(",");
+        //K, so readme file takes orders and then optional requests (like movie or song titles), separated by commas
         var orders = dataArr[0];
-        for (var i = 1; i < dataArr.length; i++) {
-            var otherStuff = "";
-            otherStuff += dataArr[i];
-        }
-        console.log(otherStuff);
-        //---------------------------------------------------wildcard spotify call------------------------------------------
+        var otherStuff = dataArr[1];
+        //then pass the modifiers to commandCall, which calls the respective function dependent on the order passed
         if (orders === "spotify-this-song") {
-            if (otherStuff === "") {
-                otherStuff = "The Sign";
-                console.log("No song input provided, so a default was used.")
-            }
             spotify.search({ type: 'track', query: otherStuff }, function (err, data) {
                 if (err) {
                     return console.log('Error occurred: ' + err);
@@ -155,20 +163,9 @@ function wildCard(params) {
                 console.log("Song title: " + data["tracks"]["items"][0].name)
                 console.log("Preview link: " + data["tracks"]["items"][0].preview_url)
                 console.log("Album the song is on: " + data["tracks"]["items"][0]["album"].name)
-                //for (var i = 0; i < data["tracks"]["items"].length; i++) {
-                //    console.log(data["tracks"]["items"][i].artists[0].name)
-                //    console.log(data["tracks"]["items"][i].name)
-                //    console.log(data["tracks"]["items"][i].preview_url)
-                //    console.log(data["tracks"]["items"][i]["album"].name)
-                //}
             });
-        }
-        //------------------------------------------wildcard movie call---------------------------------------------------
-        if (orders === "movie-this") {
-            if (otherStuff === "") {
-                otherStuff = "Mr.+Nobody";
-                console.log("No movie title was provided, so a default was used.")
-            }
+        } else if (orders === "movie-this") {
+            var movieName = otherStuff.replace(" ", "+")
             // Then run a request to the OMDB API with the movie specified
             var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=14a66ffa";
             //console.log(queryUrl); I know this works so commented out
@@ -186,14 +183,17 @@ function wildCard(params) {
                         "Actors: " + JSON.parse(body).Actors);
                 };
             })
+        } else {
+            commandCall(orders, otherStuff);
         }
-        if (orders === "my-tweets") {
-            commandCall(orders);
-        };
+        fs.appendFile("log.txt", "\n" + "do-what-it-says", function (err) {
+            // If the code experiences any errors it will log the error to the console.
+            if (err) {
+                return console.log(err);
+            }
+        });
     });
 }
-//------------------------end random.txt file------------------------
-
 //this runs once!
 var initialCommand = process.argv[2];
 commandCall(initialCommand, process.argv);
